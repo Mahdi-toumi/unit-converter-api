@@ -1,7 +1,7 @@
 """
 Configuration management for the Unit Converter API
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
@@ -24,9 +24,10 @@ class Settings(BaseSettings):
     CURRENCY_API_URL: str = "https://api.exchangerate-api.com/v4/latest"
     CURRENCY_API_TIMEOUT: int = 5
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 
 # Global settings instance
