@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: unit-converter-api
-    image: unit-converter-api:latest
+    image: toumimahdi/unit-converter-api:latest 
     ports:
       - "8000:8000"
     environment:
