@@ -1,30 +1,26 @@
 """
 Observability setup: Metrics (Prometheus), Logs (Loguru), Tracing (OpenTelemetry)
 """
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import FastAPI, Response
-from loguru import logger
+import os
 import sys
 import json
+from fastapi import FastAPI, Response
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from loguru import logger
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter, BatchSpanProcessor
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, BatchSpanProcessor, SpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-
-# ============================================================================
+# ====================================================================
 # LOGS CONFIGURATION (Loguru)
-# ============================================================================
+# ====================================================================
 
 def setup_logging():
     """Configure structured JSON logging with Loguru"""
-    
-    # Remove default handler
-    logger.remove()
-    
-    # Add custom JSON formatter
+    logger.remove()  # Remove default handler
+
     def json_formatter(record):
-        """Format logs as JSON for easy parsing"""
         log_entry = {
             "timestamp": record["time"].strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "level": record["level"].name,
@@ -33,28 +29,22 @@ def setup_logging():
             "function": record["function"],
             "line": record["line"],
         }
-        
-        # Add extra fields if present
         if record["extra"]:
             log_entry.update(record["extra"])
-        
         return json.dumps(log_entry)
-    
-    # Add handler with JSON format
+
     logger.add(
         sys.stdout,
         level="INFO",
-        serialize=True,  # We handle JSON ourselves
+        serialize=True  # Keep JSON formatting
     )
-    
     logger.info("Structured logging initialized")
 
 
-# ============================================================================
+# ====================================================================
 # METRICS CONFIGURATION (Prometheus)
-# ============================================================================
+# ====================================================================
 
-# Define Prometheus metrics
 REQUEST_COUNT = Counter(
     'api_requests_total',
     'Total number of API requests',
@@ -76,94 +66,67 @@ CONVERSION_COUNT = Counter(
 
 
 def setup_metrics(app: FastAPI):
-    """
-    Add /metrics endpoint to expose Prometheus metrics
-    
-    Args:
-        app: FastAPI application instance
-    """
+    """Add /metrics endpoint for Prometheus"""
     @app.get("/metrics", include_in_schema=False)
     async def metrics():
-        """Prometheus metrics endpoint"""
         return Response(
             content=generate_latest(),
             media_type=CONTENT_TYPE_LATEST
         )
-    
     logger.info("Prometheus metrics endpoint configured at /metrics")
 
 
 def track_request(endpoint: str, duration: float, status: str):
-    """
-    Track request metrics
-    
-    Args:
-        endpoint: API endpoint name (e.g., 'length', 'temperature')
-        duration: Request duration in seconds
-        status: Request status ('success' or 'error')
-    """
+    """Track request metrics"""
     REQUEST_COUNT.labels(endpoint=endpoint, status=status).inc()
     REQUEST_DURATION.labels(endpoint=endpoint).observe(duration)
-    
     if status == "success":
         CONVERSION_COUNT.labels(conversion_type=endpoint).inc()
 
 
-# ============================================================================
+# ====================================================================
 # TRACING CONFIGURATION (OpenTelemetry)
-# ============================================================================
+# ====================================================================
+
+class DummyExporter(SpanExporter):
+    """Exporter that discards spans (for testing)"""
+    def export(self, spans):
+        return trace.SpanExportResult.SUCCESS
+    def shutdown(self):
+        pass
 
 def setup_tracing(app: FastAPI):
-    """
-    Configure OpenTelemetry distributed tracing
-    
-    Args:
-        app: FastAPI application instance
-    """
-    # Set up tracer provider
-    trace.set_tracer_provider(TracerProvider())
-    
-    # Configure span processor (console exporter for development)
-    # In production, use Jaeger or Zipkin exporter
-    span_processor = BatchSpanProcessor(ConsoleSpanExporter())
-    trace.get_tracer_provider().add_span_processor(span_processor)
-    
-    # Instrument FastAPI automatically
+    """Configure OpenTelemetry tracing"""
+    tracer_provider = TracerProvider()
+    trace.set_tracer_provider(tracer_provider)
+
+    # Use dummy exporter during tests to avoid stdout closed errors
+    if os.environ.get("TESTING") == "1":
+        exporter = DummyExporter()
+    else:
+        exporter = ConsoleSpanExporter()
+
+    span_processor = BatchSpanProcessor(exporter)
+    tracer_provider.add_span_processor(span_processor)
+
+    # Instrument FastAPI
     FastAPIInstrumentor.instrument_app(app)
-    
+
     logger.info("OpenTelemetry tracing configured")
 
 
 def get_tracer(name: str):
-    """
-    Get a tracer instance for creating custom spans
-    
-    Args:
-        name: Name of the tracer (usually module name)
-    
-    Returns:
-        OpenTelemetry Tracer instance
-    """
+    """Return a tracer instance for custom spans"""
     return trace.get_tracer(name)
 
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
+# ====================================================================
+# HELPER FUNCTION
+# ====================================================================
 
-def log_conversion(conversion_type: str, from_val: float, to_val: float, 
+def log_conversion(conversion_type: str, from_val: float, to_val: float,
                    from_unit: str, to_unit: str, duration: float):
-    """
-    Log a conversion with structured data
-    
-    Args:
-        conversion_type: Type of conversion (length, weight, etc.)
-        from_val: Original value
-        to_val: Converted value
-        from_unit: Source unit
-        to_unit: Target unit
-        duration: Processing time in seconds
-    """
+    """Log a conversion with structured data"""
     logger.info(
         f"{conversion_type.capitalize()} conversion completed",
         extra={
@@ -177,5 +140,5 @@ def log_conversion(conversion_type: str, from_val: float, to_val: float,
     )
 
 
-# Initialize logging when module is imported
+# Initialize logging immediately
 setup_logging()
