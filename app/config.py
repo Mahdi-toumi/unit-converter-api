@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     
     # API Configuration
     API_TITLE: str = "Unit Converter API"
-    API_VERSION: str = "1.1.0"
+    API_VERSION: str = "1.0.0"
     API_DESCRIPTION: str = "REST API for unit conversions"
     
     # Server Configuration
