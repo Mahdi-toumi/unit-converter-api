@@ -1,0 +1,5 @@
+10021	WARN	(X-Content-Type-Options Header Missing)
+10096	WARN	(Timestamp Disclosure)
+10109	WARN	(Modern Web Application)
+10049	INFO	(Storable and Cacheable Content)
+10027	INFO	(Information Disclosure - Suspicious Comments)
