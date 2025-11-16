@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Builder - Installation des dépendances
 # =============================================================================
-FROM python:3.11-slim AS  builder
+FROM python:3.11-slim AS builder
 
 # Métadonnées de l'image
 LABEL maintainer="toumi.mahdi.cr7@gmail.com"
