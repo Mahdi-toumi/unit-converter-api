@@ -174,14 +174,13 @@ jobs:
           curl http://localhost:8000/health || true
 
       - name: Run OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.10.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: "http://localhost:8000"
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
-          allow_issue_writing: false
-          artifact_name: "zapscan" # Alphanumeric only, no hyphens or underscores
-        continue-on-error: true # Don't fail the build on ZAP warnings
+          fail_action: false # Don't fail on warnings/errors
+        continue-on-error: true
 
       - name: Upload ZAP reports as artifacts
         uses: actions/upload-artifact@v4
@@ -192,7 +191,6 @@ jobs:
             report_json.json
             report_md.md
             report_html.html
-
   # ============================================
   # JOB 5 : DEPLOY (OPTIONAL)
   # ============================================
