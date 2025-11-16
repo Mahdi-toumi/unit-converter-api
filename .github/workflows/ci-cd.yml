@@ -180,6 +180,7 @@ jobs:
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
           allow_issue_writing: false
+          artifact_name: "zapscan" # Alphanumeric only, no hyphens or underscores
         continue-on-error: true # Don't fail the build on ZAP warnings
 
       - name: Upload ZAP reports as artifacts
