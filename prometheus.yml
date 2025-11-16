@@ -1,0 +1,49 @@
+# =============================================================================
+# Prometheus Configuration for Unit Converter API
+# =============================================================================
+
+global:
+  # Scrape interval - how often to collect metrics
+  scrape_interval: 15s
+
+  # Evaluation interval - how often to evaluate rules
+  evaluation_interval: 15s
+
+  # External labels attached to all time series
+  external_labels:
+    monitor: "unit-converter-api"
+    environment: "development"
+
+# =============================================================================
+# Scrape Configurations
+# =============================================================================
+
+scrape_configs:
+  # Job 1: Unit Converter API Metrics
+  - job_name: "unit-converter-api"
+
+    # Override global scrape_interval for this job
+    scrape_interval: 10s
+
+    # Scrape timeout
+    scrape_timeout: 5s
+
+    # Metrics path
+    metrics_path: "/metrics"
+
+    # Scheme (http or https)
+    scheme: "http"
+
+    # Static targets
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          service: "api"
+          version: "1.0.0"
+
+  # Job 2: Prometheus Self-Monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus"
