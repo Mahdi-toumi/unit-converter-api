@@ -176,10 +176,10 @@ jobs:
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           target: "http://localhost:8000"
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
+          allow_issue_writing: false
 
       - name: Upload ZAP reports as artifacts
         uses: actions/upload-artifact@v4
