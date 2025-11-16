@@ -186,10 +186,6 @@ jobs:
             report_md.md
             report_html.html
 
-      - name: Stop application
-        if: always()
-        run: docker stop api && docker rm api
-
   # ============================================
   # JOB 5 : DEPLOY (OPTIONAL - TO BE IMPLEMENTED)
   # ============================================
