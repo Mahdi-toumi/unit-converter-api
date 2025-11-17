@@ -180,6 +180,7 @@ jobs:
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
           fail_action: false # Don't fail on warnings/errors
+          allow_issue_writing: false
         continue-on-error: true
 
       - name: Upload ZAP reports as artifacts
