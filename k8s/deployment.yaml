@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unit-converter-api
+  labels:
+    app: unit-converter
+    version: v1
+spec:
+  # Haute disponibilité : 3 replicas
+  replicas: 3
+
+  # Stratégie de mise à jour (zero downtime)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1 # 1 pod supplémentaire pendant l'update
+      maxUnavailable: 0 # Aucun pod down pendant l'update
+
+  # Sélecteur pour trouver les pods gérés
+  selector:
+    matchLabels:
+      app: unit-converter
+
+  # Template des pods
+  template:
+    metadata:
+      labels:
+        app: unit-converter
+        version: v1
+    spec:
+      containers:
+        - name: unit-converter
+          image: toumimahdi/unit-converter-api:latest
+          imagePullPolicy: Always
+
+          # Port exposé par le container
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+
+          # Variables d'environnement depuis ConfigMap
+          envFrom:
+            - configMapRef:
+                name: unit-converter-config
+
+          # Resource requests et limits
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+
+          # Liveness probe : Est-ce que le pod est vivant ?
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe : Est-ce que le pod est prêt à recevoir du trafic ?
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Startup probe : Pour les apps qui démarrent lentement
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
